@@ -49,7 +49,7 @@ streamlit_app
 │   │   ├── user.py              # User login/signup interface
 │   │   └── utils/
 │   │       └── helper.py        # Helper functions (validation, cleaning, etc.)
-
+```
 ## 🔗 Live Demo
 
 You can view the live dashboard by clicking this link:  
