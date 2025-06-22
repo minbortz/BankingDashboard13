@@ -1,6 +1,5 @@
 import logging
 import pandas as pd
-import os
 from sqlalchemy import create_engine, text
 from typing import Optional
 import streamlit as st
@@ -10,24 +9,26 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def get_db_config():
-    """Load database config from Streamlit secrets with validation"""
+    """Load database config exclusively from Streamlit secrets."""
     try:
-        config = {
-            'user': st.secrets["db_credentials"]["DB_USER"],
-            'password': st.secrets["db_credentials"]["DB_PASS"],
-            'host': st.secrets["db_credentials"]["DB_HOST"],
-            'port': int(st.secrets["db_credentials"]["DB_PORT"]),
-            'database1': st.secrets["db_credentials"]["DB_NAME1"],
-            'database2': st.secrets["db_credentials"]["DB_NAME2"]
-        }
-        logger.info("Successfully loaded all database configuration")
-        return config
-    except KeyError as e:
-        error_msg = f"Missing database configuration: {e}"
-        logger.critical(error_msg)
-        raise ValueError(error_msg)
-    except ValueError as e:
-        error_msg = f"Invalid port number: {e}"
+        # Check if st.secrets exists and has the db_credentials key
+        if hasattr(st, 'secrets') and "db_credentials" in st.secrets:
+            logger.info("Loading DB config from Streamlit secrets.")
+            return {
+                'user': st.secrets.db_credentials.DB_USER,
+                'password': st.secrets.db_credentials.DB_PASS,
+                'host': st.secrets.db_credentials.DB_HOST,
+                'port': st.secrets.db_credentials.DB_PORT,
+                'database1': st.secrets.db_credentials.DB_NAME1,
+                'database2': st.secrets.db_credentials.DB_NAME2
+            }
+        else:
+            error_msg = "Streamlit secrets 'db_credentials' not found. Ensure secrets.toml is configured correctly for local development, or secrets are set in Streamlit Cloud."
+            logger.critical(error_msg)
+            raise ValueError(error_msg)
+    except Exception as e:
+        # Catch any other exceptions during access (e.g., missing specific keys)
+        error_msg = f"Error accessing Streamlit secrets: {e}. Please verify your secrets configuration."
         logger.critical(error_msg)
         raise ValueError(error_msg)
 
@@ -43,7 +44,7 @@ try:
 
 except ValueError as e:
     logger.critical(f"Configuration error: {str(e)}")
-    raise
+    raise # Re-raise to stop the application
 
 # SQLAlchemy Engines
 engine1 = create_engine(
@@ -52,7 +53,6 @@ engine1 = create_engine(
     pool_recycle=3600,
     connect_args={
         'connect_timeout': 10,
-        'ssl': {'ca': '/etc/ssl/certs/ca-certificates.crt'}  # For Aiven SSL
     }
 )
 
@@ -62,7 +62,6 @@ engine2 = create_engine(
     pool_recycle=3600,
     connect_args={
         'connect_timeout': 10,
-        'ssl': {'ca': '/etc/ssl/certs/ca-certificates.crt'}
     }
 )
 
