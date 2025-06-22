@@ -1,25 +1,52 @@
+import logging
 import pandas as pd
 import os
 from sqlalchemy import create_engine, text
 from typing import Optional
-from dotenv import load_dotenv # Import load_dotenv
+from dotenv import load_dotenv 
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Load environment variables
 load_dotenv(dotenv_path='../../.env')
 
-DB_USER = os.getenv("DB_USER")
-DB_PASS = os.getenv("DB_PASS")
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = int(os.getenv("DB_PORT")) 
-DB_NAME1 = os.getenv("DB_NAME1")
-DB_NAME2 = os.getenv("DB_NAME2")
+def get_env_variable(name: str, default: Optional[str] = None) -> str:
+    """Safely get environment variable with validation."""
+    value = os.getenv(name, default)
+    if value is None:
+        error_msg = f"Missing required environment variable: {name}"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+    return value
 
-# --- SQLAlchemy Engines ---
+# Database Configuration with validation
+try:
+    DB_USER = get_env_variable("DB_USER")
+    DB_PASS = get_env_variable("DB_PASS")
+    DB_HOST = get_env_variable("DB_HOST")
+    DB_PORT = int(get_env_variable("DB_PORT"))  # Convert to integer
+    DB_NAME1 = get_env_variable("DB_NAME1")
+    DB_NAME2 = get_env_variable("DB_NAME2")
+    
+    logger.info("Successfully loaded all database configuration")
+    
+except ValueError as e:
+    logger.critical(f"Configuration error: {str(e)}")
+    raise
+
+# SQLAlchemy Engines
 engine1 = create_engine(
-    f'mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME1}'
+    f'mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME1}',
+    pool_pre_ping=True,
+    pool_recycle=3600
 )
 
 engine2 = create_engine(
-    f'mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME2}'
+    f'mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME2}',
+    pool_pre_ping=True,
+    pool_recycle=3600
 )
 
 def save_dataframe_to_db(df: pd.DataFrame, table_name: str):
