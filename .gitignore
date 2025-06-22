@@ -1,0 +1,12 @@
+﻿# Python
+.env/
+venv/
+__pycache__/
+*.pyc
+
+# Build files
+streamlit_app/build/
+*.pkg
+
+# Temporary files
+temp.txt
