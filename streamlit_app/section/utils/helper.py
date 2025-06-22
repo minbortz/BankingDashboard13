@@ -3,35 +3,44 @@ import pandas as pd
 import os
 from sqlalchemy import create_engine, text
 from typing import Optional
-from dotenv import load_dotenv 
+import streamlit as st
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load environment variables
-load_dotenv(dotenv_path='../../.env')
-
-def get_env_variable(name: str, default: Optional[str] = None) -> str:
-    """Safely get environment variable with validation."""
-    value = os.getenv(name, default)
-    if value is None:
-        error_msg = f"Missing required environment variable: {name}"
-        logger.error(error_msg)
+def get_db_config():
+    """Load database config from Streamlit secrets with validation"""
+    try:
+        config = {
+            'user': st.secrets["db_credentials"]["DB_USER"],
+            'password': st.secrets["db_credentials"]["DB_PASS"],
+            'host': st.secrets["db_credentials"]["DB_HOST"],
+            'port': int(st.secrets["db_credentials"]["DB_PORT"]),
+            'database1': st.secrets["db_credentials"]["DB_NAME1"],
+            'database2': st.secrets["db_credentials"]["DB_NAME2"]
+        }
+        logger.info("Successfully loaded all database configuration")
+        return config
+    except KeyError as e:
+        error_msg = f"Missing database configuration: {e}"
+        logger.critical(error_msg)
         raise ValueError(error_msg)
-    return value
+    except ValueError as e:
+        error_msg = f"Invalid port number: {e}"
+        logger.critical(error_msg)
+        raise ValueError(error_msg)
 
-# Database Configuration with validation
+# Database Configuration
 try:
-    DB_USER = get_env_variable("DB_USER")
-    DB_PASS = get_env_variable("DB_PASS")
-    DB_HOST = get_env_variable("DB_HOST")
-    DB_PORT = int(get_env_variable("DB_PORT"))  # Convert to integer
-    DB_NAME1 = get_env_variable("DB_NAME1")
-    DB_NAME2 = get_env_variable("DB_NAME2")
-    
-    logger.info("Successfully loaded all database configuration")
-    
+    db_config = get_db_config()
+    DB_USER = db_config['user']
+    DB_PASS = db_config['password']
+    DB_HOST = db_config['host']
+    DB_PORT = db_config['port']
+    DB_NAME1 = db_config['database1']
+    DB_NAME2 = db_config['database2']
+
 except ValueError as e:
     logger.critical(f"Configuration error: {str(e)}")
     raise
@@ -40,13 +49,21 @@ except ValueError as e:
 engine1 = create_engine(
     f'mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME1}',
     pool_pre_ping=True,
-    pool_recycle=3600
+    pool_recycle=3600,
+    connect_args={
+        'connect_timeout': 10,
+        'ssl': {'ca': '/etc/ssl/certs/ca-certificates.crt'}  # For Aiven SSL
+    }
 )
 
 engine2 = create_engine(
     f'mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME2}',
     pool_pre_ping=True,
-    pool_recycle=3600
+    pool_recycle=3600,
+    connect_args={
+        'connect_timeout': 10,
+        'ssl': {'ca': '/etc/ssl/certs/ca-certificates.crt'}
+    }
 )
 
 def save_dataframe_to_db(df: pd.DataFrame, table_name: str):
