@@ -1,7 +1,10 @@
-﻿streamlit>=1.12.0
-pymysql>=1.0.2
-sqlalchemy>=2.0.0
-pandas>=1.5.0
-logging
-plotly==5.5.0
-numpy==1.23.5
+typing-extensions>=4.8.0  
+numpy>=1.24.0
+pandas>=1.5.0  
+sqlalchemy>=2.0.0  
+pymysql>=1.0.3  
+altair<5  
+plotly>=5.10.0  
+streamlit>=1.45.0
+cryptography
+openpyxl
