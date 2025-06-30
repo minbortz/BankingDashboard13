@@ -77,7 +77,7 @@ def save_dataframe_to_db(df: pd.DataFrame, table_name: str):
     
 def search_database(query: str) -> Optional[pd.DataFrame]:
     try:
-        with engine1.connect() as conn:
+        with engine1.begin() as conn:
             result = conn.execute(text(query))
             if result.returns_rows:
                 return pd.DataFrame(result.fetchall(), columns=result.keys())
